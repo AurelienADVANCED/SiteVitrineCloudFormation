@@ -63,7 +63,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      ImageId: ami-0dba2cb6798deb6d8 
+      ImageId: ami-09042b2f6d07d164a 
       SubnetId: !Ref ProjetDeFousPrivateSubnet
       Tags:
         - Key: Name
@@ -74,7 +74,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      ImageId: ami-0dba2cb6798deb6d8
+      ImageId: ami-09042b2f6d07d164a
       SubnetId: !Ref ProjetDeFousPublicSubnet
       Tags:
         - Key: Name
@@ -85,7 +85,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      ImageId: ami-0dba2cb6798deb6d8
+      ImageId: ami-09042b2f6d07d164a
       SubnetId: !Ref ProjetDeFousPrivateSubnet
       Tags:
         - Key: Name
@@ -96,7 +96,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      ImageId: ami-0dba2cb6798deb6d8
+      ImageId: ami-09042b2f6d07d164a
       SubnetId: !Ref ProjetDeFousPublicSubnet
       Tags:
         - Key: Name
