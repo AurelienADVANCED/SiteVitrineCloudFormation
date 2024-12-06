@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Infrastructure pour Zone ERP, Site Vitrine et Intranet
+Description: Infrastructure pour la Zone ERP - ProjetDeFous
 
 Parameters:
   InstanceType:
@@ -11,8 +11,8 @@ Parameters:
     Description: Nom de la paire de clés pour accéder aux instances EC2
 
 Resources:
-  ### VPC et Sous-réseaux ###
-  MyVPC:
+  ### VPC et Réseau ###
+  ProjetDeFousVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
@@ -20,198 +20,92 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: MyVPC
+          Value: ProjetDeFousVPC
 
-  PublicSubnet:
+  ProjetDeFousPublicSubnet:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref MyVPC
+      VpcId: !Ref ProjetDeFousVPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
 
-  PrivateSubnet:
+  ProjetDeFousPrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref MyVPC
+      VpcId: !Ref ProjetDeFousVPC
       CidrBlock: 10.0.2.0/24
 
-  InternetGateway:
+  ProjetDeFousInternetGateway:
     Type: AWS::EC2::InternetGateway
 
-  AttachGateway:
+  ProjetDeFousAttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref MyVPC
-      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref ProjetDeFousVPC
+      InternetGatewayId: !Ref ProjetDeFousInternetGateway
 
-  RouteTable:
+  ProjetDeFousRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref MyVPC
+      VpcId: !Ref ProjetDeFousVPC
 
-  Route:
+  ProjetDeFousRoute:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref RouteTable
+      RouteTableId: !Ref ProjetDeFousRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
+      GatewayId: !Ref ProjetDeFousInternetGateway
 
-  ### Zone ERP ###
-  ERPDBInstance:
+  ### Instances EC2 - Zone ERP ###
+  ProjetDeFousERPDBInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       ImageId: ami-0dba2cb6798deb6d8 
-      SubnetId: !Ref PrivateSubnet
+      SubnetId: !Ref ProjetDeFousPrivateSubnet
       Tags:
         - Key: Name
-          Value: ERP-DB
+          Value: ProjetDeFousERP-DB
 
-  ERPFrontBackInstance:
+  ProjetDeFousERPFrontBackInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       ImageId: ami-0dba2cb6798deb6d8
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref ProjetDeFousPublicSubnet
       Tags:
         - Key: Name
-          Value: ERP-FrontBack
+          Value: ProjetDeFousERP-FrontBack
 
-  ERPDBTestInstance:
+  ProjetDeFousERPDBTestInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       ImageId: ami-0dba2cb6798deb6d8
-      SubnetId: !Ref PrivateSubnet
+      SubnetId: !Ref ProjetDeFousPrivateSubnet
       Tags:
         - Key: Name
-          Value: ERP-DB-Test
+          Value: ProjetDeFousERP-DB-Test
 
-  ERPTestInstance:
+  ProjetDeFousERPTestInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
       ImageId: ami-0dba2cb6798deb6d8
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref ProjetDeFousPublicSubnet
       Tags:
         - Key: Name
-          Value: ERP-Test
-
-  ### Site Vitrine ###
-  SiteVitrineBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: site-vitrine-dubeton
-      WebsiteConfiguration:
-        IndexDocument: index.html
-
-  ### Intranet ###
-  CognitoUserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      UserPoolName: DubetonUserPool
-      AutoVerifiedAttributes:
-        - email
-
-  CognitoUserPoolClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties:
-      ClientName: DubetonUserPoolClient
-      UserPoolId: !Ref CognitoUserPool
-      GenerateSecret: false
-
-  APIGateway:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: DubetonIntranetAPI
-
-  LambdaGetEmployes:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ employes: [] }) };
-          };
-      Role: !GetAtt LambdaExecutionRole.Arn
-
-  LambdaGetCamions:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ camions: [] }) };
-          };
-      Role: !GetAtt LambdaExecutionRole.Arn
-
-  LambdaGetLivraisons:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Runtime: nodejs20.x
-      Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ livraisons: [] }) };
-          };
-      Role: !GetAtt LambdaExecutionRole.Arn
-
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: LambdaBasicExecution
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: "*"
-
-  ### S3 pour Intranet ###
-  IntranetBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: intranet-dubeton
-      WebsiteConfiguration:
-        IndexDocument: index.html
+          Value: ProjetDeFousERP-Test
 
 Outputs:
-  ERPInstances:
+  ProjetDeFousERPInstances:
     Description: Liste des instances EC2 pour la Zone ERP
     Value: |
-      ERP-DB: !Ref ERPDBInstance
-      ERP-FrontBack: !Ref ERPFrontBackInstance
-      ERP-DB-Test: !Ref ERPDBTestInstance
-      ERP-Test: !Ref ERPTestInstance
-
-  SiteVitrineBucketURL:
-    Description: URL du site vitrine
-    Value: !GetAtt SiteVitrineBucket.WebsiteURL
-
-  IntranetBucketURL:
-    Description: URL du site intranet
-    Value: !GetAtt IntranetBucket.WebsiteURL
-
-  CognitoUserPoolId:
-    Description: ID du pool d'utilisateurs Cognito
-    Value: !Ref CognitoUserPool
+      ERP-DB: !Ref ProjetDeFousERPDBInstance
+      ERP-FrontBack: !Ref ProjetDeFousERPFrontBackInstance
+      ERP-DB-Test: !Ref ProjetDeFousERPDBTestInstance
+      ERP-Test: !Ref ProjetDeFousERPTestInstance
