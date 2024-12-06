@@ -8,8 +8,9 @@ Parameters:
     Description: Type d'instance EC2
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName
-    Description: Nom de la paire de clés pour accéder aux instances EC2
-
+    Default: AurelienClef
+    Description: Nom de la paire de clés pour accéder à l'instance EC2
+    
 Resources:
   ### VPC et Réseau ###
   ProjetDeFousVPC:
