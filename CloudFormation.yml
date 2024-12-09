@@ -140,7 +140,7 @@ Resources:
   ProjetDeFousSiteVitrineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${SubDomain}.${DomainName}" 
+      BucketName: site.e5estiam.com
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
