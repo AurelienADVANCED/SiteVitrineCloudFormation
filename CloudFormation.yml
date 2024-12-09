@@ -178,33 +178,20 @@ Resources:
       CognitoIdentityProviders:
         - ClientId: !Ref ProjetDeFousUserPoolClient
           ProviderName: !GetAtt ProjetDeFousUserPool.ProviderName
-
   ### API Gateway ###
   ProjetDeFousApiGateway:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: ProjetDeFousApi
 
-  ProjetDeFousApiGatewayResource:
+  ProjetDeFousApiGatewayIntranetResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !GetAtt ProjetDeFousApiGateway.RootResourceId
       PathPart: intranet
       RestApiId: !Ref ProjetDeFousApiGateway
 
-  ProjetDeFousApiGatewayMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ProjetDeFousApiGateway
-      ResourceId: !Ref ProjetDeFousApiGatewayResource
-      HttpMethod: POST
-      AuthorizationType: NONE
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProjetDeFousGetEmployesLambda.Arn}/invocations"
-
-  ### Fonctions Lambda ###
+  ### Lambda et Méthodes API Gateway ###
   ProjetDeFousGetEmployesLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -216,6 +203,18 @@ Resources:
         ZipFile: |
           def handler(event, context):
               return {"statusCode": 200, "body": "Liste des employés"}
+
+  ProjetDeFousGetEmployesIntegration:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ProjetDeFousApiGateway
+      ResourceId: !Ref ProjetDeFousApiGatewayIntranetResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProjetDeFousGetEmployesLambda.Arn}/invocations"
 
   ProjetDeFousGetCamionsLambda:
     Type: AWS::Lambda::Function
@@ -229,6 +228,18 @@ Resources:
           def handler(event, context):
               return {"statusCode": 200, "body": "Liste des camions"}
 
+  ProjetDeFousGetCamionsIntegration:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ProjetDeFousApiGateway
+      ResourceId: !Ref ProjetDeFousApiGatewayIntranetResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProjetDeFousGetCamionsLambda.Arn}/invocations"
+
   ProjetDeFousGetLivraisonsLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -241,7 +252,41 @@ Resources:
           def handler(event, context):
               return {"statusCode": 200, "body": "Liste des livraisons"}
 
-  ### Rôle IAM pour les fonctions Lambda ###
+  ProjetDeFousGetLivraisonsIntegration:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ProjetDeFousApiGateway
+      ResourceId: !Ref ProjetDeFousApiGatewayIntranetResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProjetDeFousGetLivraisonsLambda.Arn}/invocations"
+
+  ### Permissions Lambda pour API Gateway ###
+  ProjetDeFousLambdaPermissionEmployes:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProjetDeFousGetEmployesLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  ProjetDeFousLambdaPermissionCamions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProjetDeFousGetCamionsLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  ProjetDeFousLambdaPermissionLivraisons:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ProjetDeFousGetLivraisonsLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+  ### Rôle IAM pour Lambda ###
   ProjetDeFousLambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -254,7 +299,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: "sts:AssumeRole"
       Policies:
-        - PolicyName: ProjetDeFousLambdaExecutionPolicy
+        - PolicyName: ProjetDeFousLambdaPolicy
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
