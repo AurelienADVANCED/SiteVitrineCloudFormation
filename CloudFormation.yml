@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Infrastructure pour la Zone ERP - ProjetDeFous
+Description: Infrastructure pour la Zone ERP et Site Vitrine - ProjetDeFous
 
 Parameters:
   InstanceType:
@@ -10,6 +10,14 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Default: AurelienClef
     Description: Nom de la paire de clés pour accéder à l'instance EC2
+  DomainName:
+    Type: String
+    Default: e5estiam.com
+    Description: Nom de domaine principal géré par Route 53
+  SubDomain:
+    Type: String
+    Default: site
+    Description: Sous-domaine à configurer pour le site vitrine
     
 Resources:
   ### VPC et Réseau ###
@@ -102,6 +110,40 @@ Resources:
         - Key: Name
           Value: ProjetDeFousERP-Test
 
+  ### Site Vitrine S3 ###
+  ProjetDeFousSiteVitrineBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: projetdefous-site-vitrine
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      AccessControl: PublicRead
+
+  ProjetDeFousSiteVitrineBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ProjetDeFousSiteVitrineBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "${ProjetDeFousSiteVitrineBucket.Arn}/*"
+
+  ### Route 53 Hosted Zone ###
+  ProjetDeFousHostedZone:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: !Sub "${DomainName}."
+      Name: !Sub "${SubDomain}.${DomainName}" 
+      Type: CNAME
+      TTL: 300
+      ResourceRecords:
+        - !Sub "${ProjetDeFousSiteVitrineBucket.WebsiteURL}"
+
 Outputs:
   ProjetDeFousERPInstances:
     Description: Liste des instances EC2 pour la Zone ERP
@@ -110,3 +152,7 @@ Outputs:
       ERP-FrontBack: !Ref ProjetDeFousERPFrontBackInstance
       ERP-DB-Test: !Ref ProjetDeFousERPDBTestInstance
       ERP-Test: !Ref ProjetDeFousERPTestInstance
+      
+  ProjetDeFousSiteVitrineURL:
+    Description: URL du site vitrine avec sous-domaine
+    Value: !Sub "http://${SubDomain}.${DomainName}"
