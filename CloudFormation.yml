@@ -148,6 +148,123 @@ Resources:
       ResourceRecords:
         - !Sub "${ProjetDeFousSiteVitrineBucket.WebsiteURL}"
 
+    ### Cognito pour l'authentification ###
+  ProjetDeFousUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: ProjetDeFousUserPool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+
+  ProjetDeFousUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref ProjetDeFousUserPool
+      ClientName: ProjetDeFousUserPoolClient
+      GenerateSecret: false
+
+  ProjetDeFousIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: ProjetDeFousIdentityPool
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref ProjetDeFousUserPoolClient
+          ProviderName: !GetAtt ProjetDeFousUserPool.ProviderName
+
+  ### API Gateway ###
+  ProjetDeFousApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: ProjetDeFousApi
+
+  ProjetDeFousApiGatewayResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ProjetDeFousApiGateway.RootResourceId
+      PathPart: intranet
+      RestApiId: !Ref ProjetDeFousApiGateway
+
+  ProjetDeFousApiGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ProjetDeFousApiGateway
+      ResourceId: !Ref ProjetDeFousApiGatewayResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProjetDeFousGetEmployesLambda.Arn}/invocations"
+
+  ### Fonctions Lambda ###
+  ProjetDeFousGetEmployesLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ProjetDeFousGetEmployes
+      Handler: index.handler
+      Runtime: python3.8
+      Role: !GetAtt ProjetDeFousLambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"statusCode": 200, "body": "Liste des employés"}
+
+  ProjetDeFousGetCamionsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ProjetDeFousGetCamions
+      Handler: index.handler
+      Runtime: python3.8
+      Role: !GetAtt ProjetDeFousLambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"statusCode": 200, "body": "Liste des camions"}
+
+  ProjetDeFousGetLivraisonsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ProjetDeFousGetLivraisons
+      Handler: index.handler
+      Runtime: python3.8
+      Role: !GetAtt ProjetDeFousLambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def handler(event, context):
+              return {"statusCode": 200, "body": "Liste des livraisons"}
+
+  ### Rôle IAM pour les fonctions Lambda ###
+  ProjetDeFousLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ProjetDeFousLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: ProjetDeFousLambdaExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+
 Outputs:
   ProjetDeFousERPInstances:
     Description: Liste des instances EC2 pour la Zone ERP
@@ -156,7 +273,12 @@ Outputs:
       ERP-FrontBack: !Ref ProjetDeFousERPFrontBackInstance
       ERP-DB-Test: !Ref ProjetDeFousERPDBTestInstance
       ERP-Test: !Ref ProjetDeFousERPTestInstance
-      
   ProjetDeFousSiteVitrineURL:
     Description: URL du site vitrine avec sous-domaine
     Value: !Sub "http://${SubDomain}.${DomainName}"
+  ProjetDeFousApiGatewayURL:
+    Description: URL de l'API Gateway pour l'intranet
+    Value: !Sub "https://${ProjetDeFousApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/intranet"
+  ProjetDeFousCognitoUserPoolId:
+    Description: ID du User Pool Cognito
+    Value: !Ref ProjetDeFousUserPool
