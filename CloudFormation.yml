@@ -118,7 +118,6 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
-      AccessControl: PublicRead
 
   ProjetDeFousSiteVitrineBucketPolicy:
     Type: AWS::S3::BucketPolicy
