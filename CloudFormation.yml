@@ -30,8 +30,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service:
-                - s3.amazonaws.com
+              Service: cloudformation.amazonaws.com
             Action: "sts:AssumeRole"
       Policies:
         - PolicyName: S3AccessPolicy
@@ -41,7 +40,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - "s3:PutObject"
-                  - "s3:PutObjectAcl"
                   - "s3:GetObject"
                   - "s3:ListBucket"
                 Resource:
@@ -151,7 +149,7 @@ Resources:
           - ObjectOwnership: BucketOwnerEnforced
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
-        BlockPublicPolicy: false
+        BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: false
 
@@ -173,9 +171,7 @@ Resources:
               AWS: !GetAtt ProjetDeFousS3AccessRole.Arn
             Action:
               - "s3:PutObject"
-              - "s3:PutObjectAcl"
               - "s3:GetObject"
-              - "s3:ListBucket"
             Resource:
               - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}"
               - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
