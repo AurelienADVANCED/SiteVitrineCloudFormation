@@ -20,32 +20,6 @@ Parameters:
     Description: Sous-domaine à configurer pour le site vitrine
     
 Resources:
-  ### Rôle IAM pour gérer le bucket S3 ###
-  ProjetDeFousS3AccessRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: ProjetDeFousS3AccessRole
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: cloudformation.amazonaws.com
-            Action: "sts:AssumeRole"
-      Policies:
-        - PolicyName: S3AccessPolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "s3:PutObject"
-                  - "s3:GetObject"
-                  - "s3:ListBucket"
-                Resource:
-                  - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}"
-                  - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
-                  
   ### VPC et Réseau ###
   ProjetDeFousVPC:
     Type: AWS::EC2::VPC
@@ -136,7 +110,7 @@ Resources:
         - Key: Name
           Value: ProjetDeFousERP-Test
 
-   ### Site Vitrine S3 ###
+  ### Site Vitrine S3 ###
   ProjetDeFousSiteVitrineBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -144,13 +118,10 @@ Resources:
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
       PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
         RestrictPublicBuckets: false
 
   ProjetDeFousSiteVitrineBucketPolicy:
@@ -160,21 +131,11 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Sid: PublicReadAccess
+          - Sid: PublicReadGetObject
             Effect: Allow
             Principal: "*"
             Action: "s3:GetObject"
-            Resource: !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
-          - Sid: AllowIAMRoleAccess
-            Effect: Allow
-            Principal:
-              AWS: !GetAtt ProjetDeFousS3AccessRole.Arn
-            Action:
-              - "s3:PutObject"
-              - "s3:GetObject"
-            Resource:
-              - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}"
-              - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
+            Resource: !Sub "${ProjetDeFousSiteVitrineBucket.Arn}/*"
 
   ### Route 53 Hosted Zone ###
   ProjetDeFousHostedZone:
@@ -185,7 +146,7 @@ Resources:
       Type: CNAME
       TTL: 300
       ResourceRecords:
-        - !Sub "${SubDomain}.${DomainName}"
+        - !Sub "${ProjetDeFousSiteVitrineBucket.WebsiteURL}"
 
 Outputs:
   ProjetDeFousERPInstances:
@@ -195,9 +156,7 @@ Outputs:
       ERP-FrontBack: !Ref ProjetDeFousERPFrontBackInstance
       ERP-DB-Test: !Ref ProjetDeFousERPDBTestInstance
       ERP-Test: !Ref ProjetDeFousERPTestInstance
-  ProjetDeFousS3RoleARN:
-    Description: ARN du rôle IAM pour accéder au bucket S3
-    Value: !GetAtt ProjetDeFousS3AccessRole.Arn
+      
   ProjetDeFousSiteVitrineURL:
     Description: URL du site vitrine avec sous-domaine
     Value: !Sub "http://${SubDomain}.${DomainName}"
