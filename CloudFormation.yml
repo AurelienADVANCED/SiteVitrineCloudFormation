@@ -162,12 +162,12 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Sid: PublicReadGetObject
+          - Sid: PublicReadAccess
             Effect: Allow
             Principal: "*"
             Action: "s3:GetObject"
             Resource: !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
-          - Sid: AllowS3AccessRole
+          - Sid: AllowIAMRoleAccess
             Effect: Allow
             Principal:
               AWS: !GetAtt ProjetDeFousS3AccessRole.Arn
@@ -175,6 +175,7 @@ Resources:
               - "s3:PutObject"
               - "s3:PutObjectAcl"
               - "s3:GetObject"
+              - "s3:ListBucket"
             Resource:
               - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}"
               - !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
