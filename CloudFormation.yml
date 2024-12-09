@@ -114,8 +114,8 @@ Resources:
   ProjetDeFousSiteVitrineBucket:
     Type: AWS::S3::Bucket
     Properties:
-        BucketName: !Sub "${SubDomain}.${DomainName}"
-        WebsiteConfiguration:
+      BucketName: !Sub "${SubDomain}.${DomainName}" 
+      WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
       PublicAccessBlockConfiguration:
@@ -135,7 +135,7 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: "s3:GetObject"
-            Resource: !Sub "${ProjetDeFousSiteVitrineBucket.Arn}/*"
+            Resource: !Sub "arn:aws:s3:::${SubDomain}.${DomainName}/*"
 
   ### Route 53 Hosted Zone ###
   ProjetDeFousHostedZone:
@@ -146,7 +146,7 @@ Resources:
       Type: CNAME
       TTL: 300
       ResourceRecords:
-        - !Sub "${ProjetDeFousSiteVitrineBucket.WebsiteURL}"
+        - !Sub "${SubDomain}.${DomainName}"
 
 Outputs:
   ProjetDeFousERPInstances:
