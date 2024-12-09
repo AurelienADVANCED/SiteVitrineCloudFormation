@@ -114,8 +114,8 @@ Resources:
   ProjetDeFousSiteVitrineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: projetdefous-site-vitrine
-      WebsiteConfiguration:
+        BucketName: !Sub "${SubDomain}.${DomainName}"
+        WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
       PublicAccessBlockConfiguration:
