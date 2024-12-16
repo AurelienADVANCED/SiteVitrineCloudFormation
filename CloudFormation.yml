@@ -1,15 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Infrastructure pour la Zone ERP et Site Vitrine - ProjetDeFous
+Description: Infrastructure du Site Vitrine - ProjetDeFous
 
 Parameters:
-  InstanceType:
-    Type: String
-    Default: t2.micro
-    Description: Type d'instance EC2
-  KeyName:
-    Type: AWS::EC2::KeyPair::KeyName
-    Default: AurelienClef
-    Description: Nom de la paire de clés pour accéder à l'instance EC2
   DomainName:
     Type: String
     Default: e5estiam.com
@@ -20,101 +12,10 @@ Parameters:
     Description: Sous-domaine à configurer pour le site vitrine
 
 Resources:
-  ### VPC et Réseau ###
-  ProjetDeFousVPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: ProjetDeFousVPC
-
-  ProjetDeFousPublicSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref ProjetDeFousVPC
-      CidrBlock: 10.0.1.0/24
-      MapPublicIpOnLaunch: true
-
-  ProjetDeFousPrivateSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref ProjetDeFousVPC
-      CidrBlock: 10.0.2.0/24
-
-  ProjetDeFousInternetGateway:
-    Type: AWS::EC2::InternetGateway
-
-  ProjetDeFousAttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId: !Ref ProjetDeFousVPC
-      InternetGatewayId: !Ref ProjetDeFousInternetGateway
-
-  ProjetDeFousRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref ProjetDeFousVPC
-
-  ProjetDeFousRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref ProjetDeFousRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref ProjetDeFousInternetGateway
-
-  ### Instances EC2 - Zone ERP ###
-  ProjetDeFousERPDBInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      KeyName: !Ref KeyName
-      ImageId: ami-09042b2f6d07d164a
-      SubnetId: !Ref ProjetDeFousPrivateSubnet
-      Tags:
-        - Key: Name
-          Value: ProjetDeFousERP-DB
-
-  ProjetDeFousERPFrontBackInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      KeyName: !Ref KeyName
-      ImageId: ami-09042b2f6d07d164a
-      SubnetId: !Ref ProjetDeFousPublicSubnet
-      Tags:
-        - Key: Name
-          Value: ProjetDeFousERP-FrontBack
-
-  ProjetDeFousERPDBTestInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      KeyName: !Ref KeyName
-      ImageId: ami-09042b2f6d07d164a
-      SubnetId: !Ref ProjetDeFousPrivateSubnet
-      Tags:
-        - Key: Name
-          Value: ProjetDeFousERP-DB-Test
-
-  ProjetDeFousERPTestInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: !Ref InstanceType
-      KeyName: !Ref KeyName
-      ImageId: ami-09042b2f6d07d164a
-      SubnetId: !Ref ProjetDeFousPublicSubnet
-      Tags:
-        - Key: Name
-          Value: ProjetDeFousERP-Test
-
-  ### Site Vitrine S3 ###
   ProjetDeFousSiteVitrineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: site.e5estiam.com
+      BucketName: !Sub "${SubDomain}.${DomainName}"
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
@@ -137,7 +38,6 @@ Resources:
             Action: "s3:GetObject"
             Resource: !Sub "${ProjetDeFousSiteVitrineBucket.Arn}/*"
 
-  ### Route 53 Hosted Zone ###
   ProjetDeFousHostedZone:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -148,137 +48,7 @@ Resources:
       ResourceRecords:
         - !Sub "${ProjetDeFousSiteVitrineBucket.WebsiteURL}"
 
-  ### Cognito pour l'authentification ###
-  ProjetDeFousUserPool:
-    Type: AWS::Cognito::UserPool
-    Properties:
-      UserPoolName: ProjetDeFousUserPool
-      AutoVerifiedAttributes:
-        - email
-      Policies:
-        PasswordPolicy:
-          MinimumLength: 8
-          RequireLowercase: true
-          RequireUppercase: true
-          RequireNumbers: true
-          RequireSymbols: true
-
-  ProjetDeFousUserPoolClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties:
-      UserPoolId: !Ref ProjetDeFousUserPool
-      ClientName: ProjetDeFousUserPoolClient
-      GenerateSecret: false
-
-  ProjetDeFousIdentityPool:
-    Type: AWS::Cognito::IdentityPool
-    Properties:
-      IdentityPoolName: ProjetDeFousIdentityPool
-      AllowUnauthenticatedIdentities: false
-      CognitoIdentityProviders:
-        - ClientId: !Ref ProjetDeFousUserPoolClient
-          ProviderName: !GetAtt ProjetDeFousUserPool.ProviderName
-
-  ### API Gateway ###
-  ProjetDeFousApiGateway:
-    Type: AWS::ApiGateway::RestApi
-    Properties:
-      Name: ProjetDeFousApi
-
-  ProjetDeFousApiCognitoAuthorizer:
-    Type: AWS::ApiGateway::Authorizer
-    Properties:
-      Name: ProjetDeFousCognitoAuthorizer
-      Type: COGNITO_USER_POOLS
-      IdentitySource: method.request.header.Authorization
-      ProviderARNs:
-        - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ProjetDeFousUserPool}"
-      RestApiId: !Ref ProjetDeFousApiGateway
-
-  ProjetDeFousApiGatewayResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !GetAtt ProjetDeFousApiGateway.RootResourceId
-      PathPart: intranet
-      RestApiId: !Ref ProjetDeFousApiGateway
-
-  ProjetDeFousApiGatewayStage:
-    Type: AWS::ApiGateway::Stage
-    Properties:
-      StageName: intranet
-      RestApiId: !Ref ProjetDeFousApiGateway
-      DeploymentId: !Ref ProjetDeFousApiGatewayDeployment
-      Description: "Étape déployée pour le intranet"
-
-  ProjetDeFousApiGatewayDeployment:
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref ProjetDeFousApiGateway
-      StageName: intranet
-
-  ProjetDeFousApiGatewayMethod:
-    Type: AWS::ApiGateway::Method
-    Properties:
-      RestApiId: !Ref ProjetDeFousApiGateway
-      ResourceId: !Ref ProjetDeFousApiGatewayResource
-      HttpMethod: POST
-      AuthorizationType: COGNITO_USER_POOLS
-      AuthorizerId: !Ref ProjetDeFousApiCognitoAuthorizer
-      Integration:
-        Type: AWS_PROXY
-        IntegrationHttpMethod: POST
-        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ProjetDeFousGetEmployesLambda.Arn}/invocations"
-
-  ### Fonctions Lambda ###
-  ProjetDeFousGetEmployesLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: ProjetDeFousGetEmployes
-      Handler: index.handler
-      Runtime: python3.8
-      Role: !GetAtt ProjetDeFousLambdaExecutionRole.Arn
-      Code:
-        ZipFile: |
-          def handler(event, context):
-              return {"statusCode": 200, "body": "Liste des employés"}
-
-  ProjetDeFousLambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: ProjetDeFousLambdaExecutionRole
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: lambda.amazonaws.com
-            Action: "sts:AssumeRole"
-      Policies:
-        - PolicyName: ProjetDeFousLambdaExecutionPolicy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
-                Resource: "arn:aws:logs:*:*:*"
-
 Outputs:
-  ProjetDeFousERPInstances:
-    Description: Liste des instances EC2 pour la Zone ERP
-    Value: |
-      ERP-DB: !Ref ProjetDeFousERPDBInstance
-      ERP-FrontBack: !Ref ProjetDeFousERPFrontBackInstance
-      ERP-DB-Test: !Ref ProjetDeFousERPDBTestInstance
-      ERP-Test: !Ref ProjetDeFousERPTestInstance
   ProjetDeFousSiteVitrineURL:
     Description: URL du site vitrine avec sous-domaine
     Value: !Sub "http://${SubDomain}.${DomainName}"
-  ProjetDeFousApiGatewayURL:
-    Description: URL de l'API Gateway pour l'intranet
-    Value: !Sub "https://${ProjetDeFousApiGateway}.execute-api.${AWS::Region}.amazonaws.com/intranet"
-  ProjetDeFousCognitoUserPoolId:
-    Description: ID du User Pool Cognito
-    Value: !Ref ProjetDeFousUserPool
