@@ -18,7 +18,7 @@ Parameters:
     Type: String
     Default: site
     Description: Sous-domaine à configurer pour le site vitrine
-    
+
 Resources:
   ### VPC et Réseau ###
   ProjetDeFousVPC:
@@ -71,7 +71,7 @@ Resources:
     Properties:
       InstanceType: !Ref InstanceType
       KeyName: !Ref KeyName
-      ImageId: ami-09042b2f6d07d164a 
+      ImageId: ami-09042b2f6d07d164a
       SubnetId: !Ref ProjetDeFousPrivateSubnet
       Tags:
         - Key: Name
@@ -142,13 +142,13 @@ Resources:
     Type: AWS::Route53::RecordSet
     Properties:
       HostedZoneName: !Sub "${DomainName}."
-      Name: !Sub "${SubDomain}.${DomainName}" 
+      Name: !Sub "${SubDomain}.${DomainName}"
       Type: CNAME
       TTL: 300
       ResourceRecords:
         - !Sub "${ProjetDeFousSiteVitrineBucket.WebsiteURL}"
 
-    ### Cognito pour l'authentification ###
+  ### Cognito pour l'authentification ###
   ProjetDeFousUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -185,6 +185,16 @@ Resources:
     Properties:
       Name: ProjetDeFousApi
 
+  ProjetDeFousApiCognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: ProjetDeFousCognitoAuthorizer
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ProjetDeFousUserPool}"
+      RestApiId: !Ref ProjetDeFousApiGateway
+
   ProjetDeFousApiGatewayResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -198,7 +208,8 @@ Resources:
       RestApiId: !Ref ProjetDeFousApiGateway
       ResourceId: !Ref ProjetDeFousApiGatewayResource
       HttpMethod: POST
-      AuthorizationType: NONE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ProjetDeFousApiCognitoAuthorizer
       Integration:
         Type: AWS_PROXY
         IntegrationHttpMethod: POST
@@ -217,31 +228,6 @@ Resources:
           def handler(event, context):
               return {"statusCode": 200, "body": "Liste des employés"}
 
-  ProjetDeFousGetCamionsLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: ProjetDeFousGetCamions
-      Handler: index.handler
-      Runtime: python3.8
-      Role: !GetAtt ProjetDeFousLambdaExecutionRole.Arn
-      Code:
-        ZipFile: |
-          def handler(event, context):
-              return {"statusCode": 200, "body": "Liste des camions"}
-
-  ProjetDeFousGetLivraisonsLambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: ProjetDeFousGetLivraisons
-      Handler: index.handler
-      Runtime: python3.8
-      Role: !GetAtt ProjetDeFousLambdaExecutionRole.Arn
-      Code:
-        ZipFile: |
-          def handler(event, context):
-              return {"statusCode": 200, "body": "Liste des livraisons"}
-
-  ### Rôle IAM pour les fonctions Lambda ###
   ProjetDeFousLambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
