@@ -53,4 +53,4 @@ Resources:
 Outputs:
   ProjetDeFousSiteVitrineURL:
     Description: URL du site vitrine avec sous-domaine
-    Value: !Sub "http://${SubDomain}.${DomainName}"
+    Value: !Sub "http://${SubDomain}.${DomainName}" 
