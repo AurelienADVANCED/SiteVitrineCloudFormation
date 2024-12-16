@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Infrastructure du Site Vitrine - ProjetDeFous
+Description: Infrastructure pour la Zone ERP et Site Vitrine - ProjetDeFous
 
 Parameters:
   DomainName:
@@ -12,10 +12,11 @@ Parameters:
     Description: Sous-domaine à configurer pour le site vitrine
 
 Resources:
+  ### Site Vitrine S3 ###
   ProjetDeFousSiteVitrineBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${SubDomain}.${DomainName}"
+      BucketName: site.e5estiam.com
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
@@ -38,6 +39,7 @@ Resources:
             Action: "s3:GetObject"
             Resource: !Sub "${ProjetDeFousSiteVitrineBucket.Arn}/*"
 
+  ### Route 53 Hosted Zone ###
   ProjetDeFousHostedZone:
     Type: AWS::Route53::RecordSet
     Properties:
