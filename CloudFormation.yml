@@ -202,6 +202,20 @@ Resources:
       PathPart: intranet
       RestApiId: !Ref ProjetDeFousApiGateway
 
+  ProjetDeFousApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: intranet
+      RestApiId: !Ref ProjetDeFousApiGateway
+      DeploymentId: !Ref ProjetDeFousApiGatewayDeployment
+      Description: "Étape déployée pour le intranet"
+
+  ProjetDeFousApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ProjetDeFousApiGateway
+      StageName: intranet
+
   ProjetDeFousApiGatewayMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -264,7 +278,7 @@ Outputs:
     Value: !Sub "http://${SubDomain}.${DomainName}"
   ProjetDeFousApiGatewayURL:
     Description: URL de l'API Gateway pour l'intranet
-    Value: !Sub "https://${ProjetDeFousApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/intranet"
+    Value: !Sub "https://${ProjetDeFousApiGateway}.execute-api.${AWS::Region}.amazonaws.com/intranet"
   ProjetDeFousCognitoUserPoolId:
     Description: ID du User Pool Cognito
     Value: !Ref ProjetDeFousUserPool
